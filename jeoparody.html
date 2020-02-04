@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html >
+	<head>
+		<meta charset="utf-8" />
+		<title>Jeopardy</title>
+		<style>
+			html {
+				background: rgb(16, 26, 124);
+			}
+			
+			header {
+				text-align: center;
+			}
+			
+			h1.doc-header {
+				text-align: center;
+				text-transform: fullsize-kana;
+				color: white;
+				font-size: 35px;
+				padding: 0px;
+				margin: 0px;
+				border: 0px;
+			}
+			
+			table {
+				border-spacing: 0px;
+				width: 100%;
+			}
+			
+			table.scoreboard th {
+				color: white;
+				border-color: black;
+				text-shadow: 4px 4px 2px black;
+				padding: 4px, 0px, 0px, 4px;
+			}
+			
+			table.scoreboard th, table.scoreboard td {
+				border-width: 1px;
+				border-style: solid;
+				min-width: 100px;
+			}
+			
+			table.scoreboard td {
+				text-align: center;
+				font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+				border-color: black;
+			}
+			
+			
+			table.gameboard td:hover {
+				background: rgb(20, 33, 153);
+			}
+			
+			table.gameboard th {
+				font-size: 40px;
+				color: white;
+				font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+				border-color: black;
+				text-shadow: 4px 4px 2px black;
+			}
+			
+			table.gameboard th, table.gameboard td {
+				padding: 20px;
+				border-width: 1px;
+				border-style: solid;
+				width: 20%;
+				height: 98px;
+			}
+			
+			table.gameboard td {
+				text-align: center;
+				font-size: 60px;
+				font-weight: 900;
+				color: #d6a21e;
+				font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+				border-color: black;
+				text-shadow: 8px 4px 2px black;
+			}
+			
+			div#question-overlay {
+				font-size: 40px;
+				text-align: center;
+				vertical-align: central;
+				background: rgba(0,0,0,0.95);
+			}
+			
+			div#loading-overlay {
+				font-size: 40px;
+				text-align: center;
+				vertical-align: central;
+				background: rgba(0,0,0,1);
+				vertical-align: central;
+			}
+			
+			.overlay {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				color: #bce6ff;
+				
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+			
+			.score {
+				float: left;
+				color: bisque;
+			}
+			
+			.leader {
+				color: lightgreen;
+				font-size: 20px;
+				clear: both;
+			}
+			
+			.answer {
+				font-size: 40px;
+				color: #ff6a00;
+				text-decoration: dotted;
+				border-style: solid;
+				border-width: 1px;
+			}
+			
+			.answered {
+				color: #808080;
+			}
+			
+			.btn {
+				display: inline-block;
+				color: white;
+				border-style: solid;
+				border-width: 1px;
+				border-radius: 4px;
+				min-width: 300px;
+				min-height: 50px;
+				max-width: 300px;
+				margin-bottom: 20px;
+				padding-top:4px;
+				padding-bottom: 4px;
+				background: linear-gradient( 0deg, rgb(16, 26, 124), #808080 );
+			}
+			
+			.btn:hover {
+				cursor: pointer;
+				background: linear-gradient( 0deg, #808080, rgb(16, 26, 124) );
+			}</style>>
+	</head>
+	<body ng-controller="MyController as vm" >
+		<header>
+			<h1 class="doc-header">Jeopardy</h1>
+		</header>
+		<main ng-cloak>
+			<div class="score">
+				<table class="scoreboard">
+					<tr>
+						<th ng-repeat="s in teams track by $index" >
+							<span ng-show="!s.edit" ng-click="toggleEditTeam(s)">{{s.name}}</span>
+							<input type="text" ng-show="s.edit" ng-model="s.name"/>
+                            <button ng-show="s.edit" ng-click="toggleEditTeam(s)">done</button>
+						</th>
+					</tr>
+					<tr>
+						<td ng-repeat="s in teams track by $index">
+							<div ng-class="{leader: s.winning}">{{s.score}}</div>
+						</td>
+					</tr>														 
+				
+				</table>
+			</div>
+			
+			<table class="gameboard">
+				<tr>
+					<th ng-repeat="c in categories track by $index">{{c.name}}</th>
+				</tr>
+				<tr ng-repeat="v in rows">
+					<td ng-repeat="c in categories track by c.name" 
+						ng-click="vm.value = c.values[v]; vm.showquestion = true"
+					>
+						<div ng-show="c.values[v].awarded===undefined">{{c.values[v].value}}</div>
+					</td>
+				</tr>
+			</table>
+			<div id="question-overlay" class="overlay" ng-show="vm.showquestion" >
+				<h2> For {{vm.value.value}}:</h2>
+				<br />
+				<p>{{vm.value.question}}</p>
+				<br />
+				<div class="btn" ng-click="vm.showanswer = !vm.showanswer">{{vm.showanswer?"Hide":"Show"}} Answer</div>
+				<div class="btn" ng-click="vm.showquestion = false; vm.showanswer = false">Done</div>
+				<p>Who was correct?</p>
+				<div ng-repeat="t in teams track by $index">
+					<div class="btn" ng-show="true" ng-click="awardTeam(t,vm.value)">{{t.name}} ({{t.score}})</div>
+					<div class="btn" ng-show="true" ng-click="unawardTeam(t,vm.value)">Retract</div>
+					
+					<br />
+				</div>
+				<div class="btn" ng-show="vm.value.awarded===undefined" ng-click="noCorrectTeam(vm.value)">None</div>
+				<div class="btn" ng-show="vm.value.awarded.id===-1" ng-click="noCorrectTeam(vm.value,true)">Undo</div>
+				<p class="answer" ng-show="vm.showanswer">{{vm.value.answer}}</p>
+			</div>
+			<div id="loading-overlay" class="overlay" ng-show="vm.loading" >
+				<h2>Loading...</h2>
+			</div>
+		</main>
+		<footer>
+			<script src="http://code.angularjs.org/snapshot/angular.js"></script>
+			<!-- <script src="js/jquery-2.1.3.min.js"></script> -->
+			<!-- <script src="js/app.js"></script> -->
+			<script>
+				angular.module('ChristmasJeopardy', [])
+				.run(['$window',function($window){
+					var windowElement = angular.element($window);
+					windowElement.on('beforeunload', function (event) {    
+						console.warn( "Attempting to block a reload to prevent losing game state and data.");
+						// Cancel the event.
+						event.preventDefault();
+						// Chrome requires returnValue to be set.
+						event.returnValue = '';
+					});
+                }])
+				.controller('MyController', ['$scope', function ($scope) {
+					var vm = $scope;
+					
+					vm.loading = true;
+					vm.question = "";
+					vm.answer = "";
+					vm.showquestion = false;
+					vm.rows = [0,1,2,3,4];
+
+					vm.awardTeam = awardTeam;
+					vm.unawardTeam = unawardTeam;
+                    vm.noCorrectTeam = noCorrectTeam;
+                    vm.toggleEditTeam = toggleEditTeam;
+
+					vm.teams = [{
+						id:1,
+						name: "Team 1",
+						score: 0,
+						correct: [],
+						incorrect: [],
+						edit: false
+					},{
+						id:2,
+						name: "Team 2",
+						score: 0,
+						correct: [],
+						incorrect: [],
+						edit: false
+					}];
+
+					vm.categories = [ 
+						{
+							"name": "HISTORY", 
+							"values": [
+								{"category": "HISTORY", "air_date": "2004-12-31", "question": "'For the last 8 years of his life, Galileo was under house arrest for espousing this man's theory'", "value": "$200", "answer": "Copernicus", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "HISTORY", "air_date": "2004-12-31", "question": "'Built in 312 B.C. to link Rome & the South of Italy, it's still in use today'", "value": "$400", "answer": "the Appian Way", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "HISTORY", "air_date": "2004-12-31", "question": "'In 1000 Rajaraja I of the Cholas battled to take this Indian Ocean island now known for its tea'", "value": "$600", "answer": "Ceylon (or Sri Lanka)", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "HISTORY", "air_date": "2004-12-31", "question": "'Karl led the first of these Marxist organizational efforts; the second one began in 1889'", "value": "$800", "answer": "the International", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "HISTORY", "air_date": "2004-12-31", "question": "'This Asian political party was founded in 1885 with \"Indian National\" as part of its name'", "value": "$1000", "answer": "the Congress Party", "round": "Jeopardy!", "show_number": "4680"}
+							],
+						},
+						{
+							"name": "3-LETTER WORDS", 
+							"values": [
+								{"category": "3-LETTER WORDS", "air_date": "2004-12-31", "question": "'In the title of an Aesop fable, this insect shared billing with a grasshopper'", "value": "$200", "answer": "the ant", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "3-LETTER WORDS", "air_date": "2004-12-31", "question": "'Cows regurgitate this from the first stomach to the mouth & chew it again'", "value": "$400", "answer": "the cud", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "3-LETTER WORDS", "air_date": "2004-12-31", "question": "'A small demon, or a mischievous child (who might be a little demon!)'", "value": "$600", "answer": "imp", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "3-LETTER WORDS", "air_date": "2004-12-31", "question": "'In geologic time one of these, shorter than an eon, is divided into periods & subdivided into epochs'", "value": "$800", "answer": "era", "round": "Jeopardy!", "show_number": "4680"},
+								{"category": "3-LETTER WORDS", "air_date": "2004-12-31", "question": "'A single layer of paper, or to perform one's craft diligently'", "value": "$1000", "answer": "ply", "round": "Jeopardy!", "show_number": "4680"}
+							]
+						},
+						{
+							"name": "SCIENCE CLASS", 
+							"values": [
+								{"category": "SCIENCE CLASS", "air_date": "2010-07-06", "question": "'99.95% of the mass of an atom is in this part'", "value": "$400", "answer": "the nucleus", "round": "Double Jeopardy!", "show_number": "5957"},
+								{"category": "SCIENCE CLASS", "air_date": "2010-07-06", "question": "'During this plant process, carbon dioxide & water combine with light energy to create oxygen & glucose'", "value": "$800", "answer": "photosynthesis", "round": "Double Jeopardy!", "show_number": "5957"},
+								{"category": "SCIENCE CLASS", "air_date": "2010-07-06", "question": "'The wedge is an adaptation of the simple machine called the inclined this'", "value": "$1200", "answer": "plane", "round": "Double Jeopardy!", "show_number": "5957"},
+								{"category": "SCIENCE CLASS", "air_date": "2010-07-06", "question": "'Lava & igneous rock are formed from this hot liquid rock material found under the earth's crust'", "value": "$1600", "answer": "magma", "round": "Double Jeopardy!", "show_number": "5957"},
+								{"category": "SCIENCE CLASS", "air_date": "2010-07-06", "question": "'Of the 6 noble gases on the periodic table, it is the lightest'", "value": "$5000", "answer": "helium", "round": "Double Jeopardy!", "show_number": "5957"}
+							]
+						},
+						{
+							"name": "TRAVEL & TOURISM", 
+							"values": [
+								{"category": "TRAVEL & TOURISM", "air_date": "2000-12-18", "question": "'The Cinderella Castle Mystery Tour is a highlight of this Asian city's Disneyland'", "value": "$100", "answer": "Tokyo", "round": "Jeopardy!", "show_number": "3751"},
+								{"category": "TRAVEL & TOURISM", "air_date": "2000-12-18", "question": "'The home of silk merchant Jim Thompson, who disappeared in 1967, is a tourist attraction in this Thai city'", "value": "$200", "answer": "Bangkok", "round": "Jeopardy!", "show_number": "3751"},
+								{"category": "TRAVEL & TOURISM", "air_date": "2000-12-18", "question": "'We're not stringing you along: this capital of the Czech Republic is famous for its puppet theatres'", "value": "$300", "answer": "Prague", "round": "Jeopardy!", "show_number": "3751"},
+								{"category": "TRAVEL & TOURISM", "air_date": "2000-12-18", "question": "'Jomo Kenyatta International Airport serves this world capital'", "value": "$500", "answer": "Nairobi, Kenya", "round": "Jeopardy!", "show_number": "3751"},
+								{"category": "TRAVEL & TOURISM", "air_date": "2000-12-18", "question": "'Andrea Palladio's 1554 book on \"The Antiquities of\" this city was the standard guidebook for some 200 years'", "value": "$500", "answer": "Rome", "round": "Jeopardy!", "show_number": "3751"}
+							]
+						},
+						{
+							"name": "BACKWORDS", 
+							"values": [
+								{"category": "BACKWORDS", "air_date": "2010-09-15", "question": "'If that Chihuahua yaps any more, I swear I'm going to do this to it'", "value": "$200", "answer": "spay", "round": "Jeopardy!", "show_number": "5978"},
+								{"category": "BACKWORDS", "air_date": "2010-09-15", "question": "'God didn't like the joke about the dyslexic agnostic, you know, where the guy wonders if there really is a this'", "value": "$400", "answer": "a dog", "round": "Jeopardy!", "show_number": "5978"},
+								{"category": "BACKWORDS", "air_date": "2010-09-15", "question": "'I believe these were the cause of the missing produce on the White Star Line's flagship'", "value": "$600", "answer": "rats", "round": "Jeopardy!", "show_number": "5978"},
+								{"category": "BACKWORDS", "air_date": "2010-09-15", "question": "'I felt it was excessive when the waiter was rotated on one of these after complaining about his tips'", "value": "$800", "answer": "a spit", "round": "Jeopardy!", "show_number": "5978"},
+								{"category": "BACKWORDS", "air_date": "2010-09-15", "question": "'\"The Rime of the Ancient Mariner\" was the favorite poem of the Middle East leader with this title'", "value": "$1000", "answer": "Emir", "round": "Jeopardy!", "show_number": "5978"},
+							]
+						},
+					];
+
+					vm.categories.forEach( c => {
+						c.values.forEach( i => {
+							i.amount = parseInt( i.value.replace('$', ''));
+							i.awarded = undefined;
+						});
+					});
+					
+					calcLeader();
+
+					
+					function noCorrectTeam(value,revert) {
+						if( value.awarded === undefined ){
+							value.awarded = {id: -1};
+							vm.teams.forEach( i => {
+								i.incorrect++;
+							})
+						} else {
+							if( value.awarded.id === -1 && revert ) {
+								value.awarded = undefined;
+								vm.teams.forEach( i => {
+									i.incorrect--;
+								});
+							} else {
+								console.warn( value, "Has already been awarded to :", value.awarded );
+							}
+						}
+                    }
+
+                    function incorrectAnswer(team, value) {
+                        if (value.awarded === undefined) {
+                            value.awarded = team;
+                            //team.score += value.amount;
+                            team.incorrect++;
+                            calcLeader();
+                        } else {
+                            console.warn(value, "Has already been awarded to :", value.awarded);
+                        }
+                    }
+					function awardTeam(team,value) {
+						if( value.awarded === undefined ) {
+							value.awarded = team;
+							team.score += value.amount;
+							team.correct++;
+							calcLeader();
+						} else {
+							console.warn( value, "Has already been awarded to :", value.awarded );
+						}
+					}
+
+					function unawardTeam(team,value) {
+						if( value.awarded === team ) {
+							value.awarded = undefined;
+							team.score = team.score - value.amount;
+							team.correct--;
+							calcLeader();
+						} else {
+							console.warn( value, "is not currently awarded to :", team );
+						}
+					}
+
+					function calcLeader() {
+						/*
+							Sorts the teams array DESC and picks the first element as the winner, any with the same
+							  score get team.winning set to true. Used later to change the stylig of the winner's
+							  displayed score. The teams are then sorted back by id ASC.
+						*/
+						vm.teams.forEach( t => t.winning = false );
+						vm.teams.sort( (a,b) => {return b.score - a.score;});
+						vm.teams.forEach( t => {if( t.score == vm.teams[0].score ){t.winning = true}});
+						vm.teams.sort( (a,b) => {return a.id - b.id;});
+					}
+
+					function toggleEditTeam( team ) {
+						team.edit = !team.edit;
+						console.log( "editing: ", team );
+					}
+				  }]);				
+				angular.element(function() {
+				  angular.bootstrap(document, ['ChristmasJeopardy']);
+				});
+				
+			</script>
+		</footer>
+	</body>
+</html>
